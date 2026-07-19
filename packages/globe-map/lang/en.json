@@ -116,7 +116,7 @@
   "GLOBEMAP.MacroCreated": "Created a Globe Map macro. Drag it to your hotbar.",
 
   "GLOBEMAP.Hex.ConfigTitle": "Hex Grid",
-  "GLOBEMAP.Hex.ConfigHint": "A Kingmaker style exploration grid (12-mile hexes). By default it stays centered on the party ('near the players'). Turn that off and use 'Center hex grid here' (right-click the map) to pin it somewhere fixed. Grow columns/rows for a larger territory.",
+  "GLOBEMAP.Hex.ConfigHint": "A fixed Kingmaker style exploration grid (12-mile hexes) anchored in the world. Only hexes within the visible radius of the party are shown, so the circle slides over the fixed grid as the players travel. Set the radius to 0 to show the whole grid. Use 'Center hex grid here' (right-click) to anchor the whole lattice; grow columns/rows for a larger region.",
   "GLOBEMAP.Hex.CenterLng": "Center longitude",
   "GLOBEMAP.Hex.CenterLat": "Center latitude",
   "GLOBEMAP.Hex.HexMiles": "Hex size (miles across)",
@@ -129,9 +129,8 @@
   "GLOBEMAP.Hex.LineOpacity": "Line opacity",
   "GLOBEMAP.Hex.FillOpacity": "Fill opacity",
   "GLOBEMAP.Hex.ShowLabels": "Show hex labels (A1, B2, ...)",
-  "GLOBEMAP.Hex.FollowParty": "Keep grid centered on the party (near the players)",
-  "GLOBEMAP.Hex.CenterHere": "Center hex grid here",
-  "GLOBEMAP.Hex.CenterParty": "Center hex grid on party",
+  "GLOBEMAP.Hex.VisibleRadius": "Visible radius around party (miles, 0 = all)",
+  "GLOBEMAP.Hex.CenterHere": "Anchor hex grid here",
 
   "GLOBEMAP.JT.OpenPanel": "Journey timeline",
   "GLOBEMAP.JT.ClosePanel": "Close journey panel",

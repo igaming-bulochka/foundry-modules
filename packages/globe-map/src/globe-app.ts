@@ -50,7 +50,7 @@ import {
 import { waypointDialog, confirmDeleteWaypoint } from "./journey-dialog";
 import { pinDialog } from "./dialogs";
 import { hexDialog } from "./hex-dialog";
-import { buildHexGeoJSON } from "./hexgrid";
+import { buildHexGeoJSON, type HexVisibility } from "./hexgrid";
 import { escapeHtml, linkifyIfUrl } from "./util";
 
 let appInstance: GlobeApp | null = null;
@@ -415,21 +415,22 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
     });
   }
 
-  /** Hex config with the center overridden to the party when "follow party" is on. */
-  private effectiveHexConfig() {
-    const cfg = getHexConfig();
-    if (cfg.followParty) {
-      const party = getParty();
-      if (party) return { ...cfg, centerLng: party.lng, centerLat: party.lat };
-    }
-    return cfg;
+  /** The circle of fixed hexes to reveal: centered on the party if set, else the
+   * grid center. Null means "show the whole grid" (radius 0). */
+  private hexVisibility(cfg = getHexConfig()): HexVisibility | null {
+    if (!cfg.visibleRadiusMiles || cfg.visibleRadiusMiles <= 0) return null;
+    const party = getParty();
+    return {
+      center: party ?? { lng: cfg.centerLng, lat: cfg.centerLat },
+      radiusMiles: cfg.visibleRadiusMiles,
+    };
   }
 
   private refreshHexSource(): void {
     if (!this.map) return;
-    const cfg = this.effectiveHexConfig();
+    const cfg = getHexConfig();
     const src = this.map.getSource(HEX_SOURCE) as GeoJSONSource | undefined;
-    src?.setData(buildHexGeoJSON(cfg) as any);
+    src?.setData(buildHexGeoJSON(cfg, this.hexVisibility(cfg)) as any);
     // Re-apply data-driven paint from config each refresh.
     if (this.map.getLayer(HEX_FILL)) {
       this.map.setPaintProperty(HEX_FILL, "fill-color", cfg.color);
@@ -476,7 +477,9 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
   /** Frame the current hex grid so the user actually sees it when enabled. */
   private flyToHexGrid(): void {
     if (!this.map) return;
-    const fc = buildHexGeoJSON(this.effectiveHexConfig());
+    const cfg = getHexConfig();
+    let fc = buildHexGeoJSON(cfg, this.hexVisibility(cfg));
+    if (fc.features.length === 0) fc = buildHexGeoJSON(cfg); // party outside grid: show it all
     let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
     for (const f of fc.features) {
       if (f.geometry.type !== "Polygon") continue;
@@ -947,8 +950,8 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
   private redrawParty(): void {
     if (!this.map) return;
     const party = getParty();
-    // Keep a party-following hex grid glued to the party as it moves.
-    if (this.hexOn && getHexConfig().followParty) this.refreshHexSource();
+    // Party moved: re-reveal the circle of fixed hexes around its new position.
+    if (this.hexOn) this.refreshHexSource();
     if (!party) {
       this.partyMarker?.remove();
       this.partyMarker = null;
@@ -991,27 +994,14 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
         label: game.i18n.localize("GLOBEMAP.Hex.CenterHere"),
         icon: "fa-solid fa-border-all",
         handler: async () => {
-          // Manual placement wins: stop following the party.
-          await setHexConfig({ centerLng: lngLat.lng, centerLat: lngLat.lat, followParty: false });
+          // Re-anchor the whole fixed lattice here (a GM setup action).
+          await setHexConfig({ centerLng: lngLat.lng, centerLat: lngLat.lat });
           this.refreshHexSource();
           if (!this.hexOn) this.toggleHex();
           else this.flyToHexGrid();
         },
         gmOnly: true,
       });
-      if (getParty()) {
-        items.push({
-          label: game.i18n.localize("GLOBEMAP.Hex.CenterParty"),
-          icon: "fa-solid fa-people-group",
-          handler: async () => {
-            await setHexConfig({ followParty: true });
-            this.refreshHexSource();
-            if (!this.hexOn) this.toggleHex();
-            else this.flyToHexGrid();
-          },
-          gmOnly: true,
-        });
-      }
     }
     items.push({ label: game.i18n.localize("GLOBEMAP.PingHere"), icon: "fa-solid fa-bullseye", handler: () => sendPing(lngLat.lng, lngLat.lat, userColor()) });
 

@@ -70,16 +70,17 @@ export const DEFAULT_HEX_CONFIG: HexGridConfig = {
   centerLng: 6.0,
   centerLat: 47.1,
   hexMiles: 12,
-  // Small, local grid: an explorable neighbourhood the players can realistically
-  // claim, not the whole region. ~96 x 108 mi. Grow it in the hex settings.
-  cols: 8,
-  rows: 9,
+  // Fixed lattice covering the Stolen Lands (~207 x 264 mi). Only the circle
+  // around the party is shown, so this can safely span the whole region.
+  cols: 20,
+  rows: 22,
   orientation: "flat",
   color: "#e0a92b",
   opacity: 0.95,
   fillOpacity: 0.06,
   showLabels: false,
-  followParty: true,
+  // ~3 hexes out from the party: a tight, conquerable neighbourhood.
+  visibleRadiusMiles: 36,
 };
 
 export function registerSettings(): void {

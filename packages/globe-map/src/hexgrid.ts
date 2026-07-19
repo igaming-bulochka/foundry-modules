@@ -94,14 +94,39 @@ function hexCorners(R: number, pointy: boolean): Array<[number, number]> {
  * a `label` property; a matching centroid Point feature is emitted for each hex
  * so labels can be placed with a symbol layer when enabled.
  */
-export function buildHexGeoJSON(cfg: HexGridConfig): GeoFeatureCollection {
+export interface HexVisibility {
+  center: { lng: number; lat: number };
+  radiusMiles: number;
+}
+
+export function buildHexGeoJSON(cfg: HexGridConfig, vis?: HexVisibility | null): GeoFeatureCollection {
   const R = cfg.hexMiles / Math.sqrt(3);
   const pointy = cfg.orientation === "pointy";
   const cornerOffsets = hexCorners(R, pointy);
   const cells = buildCells(cfg);
   const features: GeoFeature[] = [];
 
+  // Circular visibility: keep only hexes whose center is within radius of the
+  // focus point, measured in the grid's own planar-miles frame. The lattice
+  // itself never moves; this just decides which fixed hexes are drawn.
+  let clip = false;
+  let fdx = 0;
+  let fdy = 0;
+  let r2 = 0;
+  if (vis && vis.radiusMiles > 0) {
+    clip = true;
+    const cosLat = Math.max(0.15, Math.cos((cfg.centerLat * Math.PI) / 180));
+    fdx = (vis.center.lng - cfg.centerLng) * MILES_PER_DEG_LAT * cosLat;
+    fdy = (vis.center.lat - cfg.centerLat) * MILES_PER_DEG_LAT;
+    r2 = vis.radiusMiles * vis.radiusMiles;
+  }
+
   for (const cell of cells) {
+    if (clip) {
+      const ddx = cell.cx - fdx;
+      const ddy = cell.cy - fdy;
+      if (ddx * ddx + ddy * ddy > r2) continue;
+    }
     const ring: Array<[number, number]> = cornerOffsets.map(([dx, dy]) => {
       const mx = cell.cx + dx;
       const my = cell.cy + dy;

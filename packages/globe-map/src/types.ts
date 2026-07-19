@@ -94,9 +94,11 @@ export interface HexGridConfig {
   opacity: number;
   fillOpacity: number;
   showLabels: boolean;
-  // When true and a party position is set, the grid centers on the party so it
-  // stays "near the players" and moves with them, ignoring centerLng/centerLat.
-  followParty: boolean;
+  // The hex lattice is FIXED in world space (anchored at centerLng/centerLat).
+  // Only hexes whose center is within this many miles of the party are shown, so
+  // the visible circle slides over the fixed grid as the party travels. 0 shows
+  // the whole grid.
+  visibleRadiusMiles: number;
 }
 
 // ---- Socket payloads --------------------------------------------------------
