@@ -116,7 +116,7 @@
   "GLOBEMAP.MacroCreated": "Created a Globe Map macro. Drag it to your hotbar.",
 
   "GLOBEMAP.Hex.ConfigTitle": "Hex Grid",
-  "GLOBEMAP.Hex.ConfigHint": "Drop a Kingmaker style exploration grid on the map. Tip: right-click the map and choose 'Center hex grid here' to reposition it quickly.",
+  "GLOBEMAP.Hex.ConfigHint": "A Kingmaker style exploration grid (12-mile hexes). By default it stays centered on the party ('near the players'). Turn that off and use 'Center hex grid here' (right-click the map) to pin it somewhere fixed. Grow columns/rows for a larger territory.",
   "GLOBEMAP.Hex.CenterLng": "Center longitude",
   "GLOBEMAP.Hex.CenterLat": "Center latitude",
   "GLOBEMAP.Hex.HexMiles": "Hex size (miles across)",
@@ -129,7 +129,9 @@
   "GLOBEMAP.Hex.LineOpacity": "Line opacity",
   "GLOBEMAP.Hex.FillOpacity": "Fill opacity",
   "GLOBEMAP.Hex.ShowLabels": "Show hex labels (A1, B2, ...)",
+  "GLOBEMAP.Hex.FollowParty": "Keep grid centered on the party (near the players)",
   "GLOBEMAP.Hex.CenterHere": "Center hex grid here",
+  "GLOBEMAP.Hex.CenterParty": "Center hex grid on party",
 
   "GLOBEMAP.JT.OpenPanel": "Journey timeline",
   "GLOBEMAP.JT.ClosePanel": "Close journey panel",

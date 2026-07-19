@@ -94,6 +94,9 @@ export interface HexGridConfig {
   opacity: number;
   fillOpacity: number;
   showLabels: boolean;
+  // When true and a party position is set, the grid centers on the party so it
+  // stays "near the players" and moves with them, ignoring centerLng/centerLat.
+  followParty: boolean;
 }
 
 // ---- Socket payloads --------------------------------------------------------

@@ -41,6 +41,12 @@ export async function hexDialog(cfg: HexGridConfig): Promise<Partial<HexGridConf
       </div>
       <div class="form-group">
         <label class="checkbox">
+          <input type="checkbox" name="followParty"${cfg.followParty ? " checked" : ""} />
+          ${escapeHtml(game.i18n.localize("GLOBEMAP.Hex.FollowParty"))}
+        </label>
+      </div>
+      <div class="form-group">
+        <label class="checkbox">
           <input type="checkbox" name="showLabels"${cfg.showLabels ? " checked" : ""} />
           ${escapeHtml(game.i18n.localize("GLOBEMAP.Hex.ShowLabels"))}
         </label>
@@ -62,6 +68,7 @@ export async function hexDialog(cfg: HexGridConfig): Promise<Partial<HexGridConf
           opacity: Math.max(0, n("opacity")),
           fillOpacity: Math.max(0, n("fillOpacity")),
           showLabels: (f.elements.namedItem("showLabels") as HTMLInputElement).checked,
+          followParty: (f.elements.namedItem("followParty") as HTMLInputElement).checked,
         } as Partial<HexGridConfig>;
       },
     },

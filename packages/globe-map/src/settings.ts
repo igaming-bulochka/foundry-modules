@@ -70,13 +70,16 @@ export const DEFAULT_HEX_CONFIG: HexGridConfig = {
   centerLng: 6.0,
   centerLat: 47.1,
   hexMiles: 12,
-  cols: 20,
-  rows: 18,
+  // Small, local grid: an explorable neighbourhood the players can realistically
+  // claim, not the whole region. ~96 x 108 mi. Grow it in the hex settings.
+  cols: 8,
+  rows: 9,
   orientation: "flat",
   color: "#e0a92b",
-  opacity: 0.9,
-  fillOpacity: 0.05,
+  opacity: 0.95,
+  fillOpacity: 0.06,
   showLabels: false,
+  followParty: true,
 };
 
 export function registerSettings(): void {

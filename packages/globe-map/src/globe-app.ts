@@ -72,8 +72,13 @@ const HEX_CASING = "gm-hex-casing";
 const HEX_LINE = "gm-hex-line";
 const HEX_LABEL = "gm-hex-label";
 const HEX_LAYERS = [HEX_FILL, HEX_CASING, HEX_LINE];
-// Zoom-scaled line width so 12-mile hexes read at any zoom instead of vanishing.
-const HEX_WIDTH_EXPR = ["interpolate", ["linear"], ["zoom"], 3, 0.5, 6, 1.4, 9, 3, 12, 5] as any;
+// Hexes are hidden below this zoom so a whole grid never collapses into a mush
+// of tiny rings when zoomed out. At the fitted zoom for a local grid they are
+// large and clean.
+const HEX_MINZOOM = 4;
+// Thin, zoom-scaled widths so the honeycomb reads as sharp hexagons.
+const HEX_WIDTH_EXPR = ["interpolate", ["linear"], ["zoom"], 5, 0.6, 8, 1.1, 11, 2] as any;
+const HEX_CASING_EXPR = ["interpolate", ["linear"], ["zoom"], 5, 1.2, 8, 1.8, 11, 2.8] as any;
 
 function moduleBaseUrl(): string {
   return `${window.location.origin}/modules/${MODULE_ID}`;
@@ -365,6 +370,7 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
       id: HEX_FILL,
       type: "fill",
       source: HEX_SOURCE,
+      minzoom: HEX_MINZOOM,
       filter: ["==", ["geometry-type"], "Polygon"],
       layout: { visibility: "none" },
       paint: { "fill-color": cfg.color, "fill-opacity": cfg.fillOpacity },
@@ -374,25 +380,25 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
       id: HEX_CASING,
       type: "line",
       source: HEX_SOURCE,
+      minzoom: HEX_MINZOOM,
       filter: ["==", ["geometry-type"], "Polygon"],
-      layout: { visibility: "none", "line-join": "round" },
-      paint: {
-        "line-color": "rgba(20, 14, 4, 0.55)",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 6, 2.8, 9, 5, 12, 7.5] as any,
-      },
+      layout: { visibility: "none", "line-join": "miter" },
+      paint: { "line-color": "rgba(20, 14, 4, 0.5)", "line-width": HEX_CASING_EXPR },
     });
     this.map.addLayer({
       id: HEX_LINE,
       type: "line",
       source: HEX_SOURCE,
+      minzoom: HEX_MINZOOM,
       filter: ["==", ["geometry-type"], "Polygon"],
-      layout: { visibility: "none", "line-join": "round" },
+      layout: { visibility: "none", "line-join": "miter" },
       paint: { "line-color": cfg.color, "line-width": HEX_WIDTH_EXPR, "line-opacity": cfg.opacity },
     });
     this.map.addLayer({
       id: HEX_LABEL,
       type: "symbol",
       source: HEX_SOURCE,
+      minzoom: HEX_MINZOOM,
       filter: ["==", ["get", "isLabel"], true],
       layout: {
         visibility: "none",
@@ -409,9 +415,19 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
     });
   }
 
+  /** Hex config with the center overridden to the party when "follow party" is on. */
+  private effectiveHexConfig() {
+    const cfg = getHexConfig();
+    if (cfg.followParty) {
+      const party = getParty();
+      if (party) return { ...cfg, centerLng: party.lng, centerLat: party.lat };
+    }
+    return cfg;
+  }
+
   private refreshHexSource(): void {
     if (!this.map) return;
-    const cfg = getHexConfig();
+    const cfg = this.effectiveHexConfig();
     const src = this.map.getSource(HEX_SOURCE) as GeoJSONSource | undefined;
     src?.setData(buildHexGeoJSON(cfg) as any);
     // Re-apply data-driven paint from config each refresh.
@@ -460,7 +476,7 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
   /** Frame the current hex grid so the user actually sees it when enabled. */
   private flyToHexGrid(): void {
     if (!this.map) return;
-    const fc = buildHexGeoJSON(getHexConfig());
+    const fc = buildHexGeoJSON(this.effectiveHexConfig());
     let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
     for (const f of fc.features) {
       if (f.geometry.type !== "Polygon") continue;
@@ -476,7 +492,7 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
     if (!Number.isFinite(minLng)) return;
     this.map.fitBounds(
       [[minLng, minLat], [maxLng, maxLat]],
-      { padding: 60, maxZoom: 9, duration: 800 },
+      { padding: 70, maxZoom: 10, duration: 800 },
     );
   }
 
@@ -931,6 +947,8 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
   private redrawParty(): void {
     if (!this.map) return;
     const party = getParty();
+    // Keep a party-following hex grid glued to the party as it moves.
+    if (this.hexOn && getHexConfig().followParty) this.refreshHexSource();
     if (!party) {
       this.partyMarker?.remove();
       this.partyMarker = null;
@@ -973,12 +991,27 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
         label: game.i18n.localize("GLOBEMAP.Hex.CenterHere"),
         icon: "fa-solid fa-border-all",
         handler: async () => {
-          await setHexConfig({ centerLng: lngLat.lng, centerLat: lngLat.lat });
+          // Manual placement wins: stop following the party.
+          await setHexConfig({ centerLng: lngLat.lng, centerLat: lngLat.lat, followParty: false });
           this.refreshHexSource();
           if (!this.hexOn) this.toggleHex();
+          else this.flyToHexGrid();
         },
         gmOnly: true,
       });
+      if (getParty()) {
+        items.push({
+          label: game.i18n.localize("GLOBEMAP.Hex.CenterParty"),
+          icon: "fa-solid fa-people-group",
+          handler: async () => {
+            await setHexConfig({ followParty: true });
+            this.refreshHexSource();
+            if (!this.hexOn) this.toggleHex();
+            else this.flyToHexGrid();
+          },
+          gmOnly: true,
+        });
+      }
     }
     items.push({ label: game.i18n.localize("GLOBEMAP.PingHere"), icon: "fa-solid fa-bullseye", handler: () => sendPing(lngLat.lng, lngLat.lat, userColor()) });
 
