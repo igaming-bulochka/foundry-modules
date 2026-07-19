@@ -39,10 +39,14 @@ so Foundry always sees the current version; the versioned zips are immutable.
    and **bucket name**. Create an **S3 access key + secret key** for it.
    > These S3 keys are separate from the Timeweb Cloud **API token** (the JWT).
    > The API token cannot upload objects over the S3 protocol; the S3 keys can.
-2. **CDN:** create a CDN resource with the bucket as its origin. Point a domain
-   at it (the pipeline assumes `https://foundry-modules.schmooky.dev`, serving
-   the bucket root with no path prefix). Set the CDN to honour origin
-   `Cache-Control` headers so `no-cache` manifests work.
+   The bucket `foundry-modules` (public, hot, `ru-1`) already exists; the first
+   release was published to it from local.
+2. **Pretty domain / CDN (optional, later):** everything currently uses the raw
+   S3 URL `https://s3.twcstorage.ru/foundry-modules` because it works without
+   DNS. To move to `https://foundry-modules.schmooky.dev`, CNAME that hostname to
+   the bucket (or front it with a Timeweb CDN resource honouring origin
+   `Cache-Control`), then set the `CDN_BASE` repo variable and the module's
+   **Golarion Tile Data URL** setting to it and republish.
 3. If you use a different CDN domain or add a path prefix, set the repository
    variables `CDN_BASE` and `CDN_PATH_PREFIX`, and update the `manifest` /
    `download` fields that ship inside each `packages/<id>/module.json` to match
@@ -90,7 +94,7 @@ CDN_BASE=https://foundry-modules.schmooky.dev node tools/publish/package.mjs
 Use the module's CDN manifest URL in *Install Module → Manifest URL*:
 
 ```
-https://foundry-modules.schmooky.dev/globe-map/module.json
+https://s3.twcstorage.ru/foundry-modules/globe-map/module.json
 ```
 
 Foundry re-reads that URL to detect updates. Because manifests are served

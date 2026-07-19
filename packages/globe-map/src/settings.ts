@@ -12,6 +12,7 @@ import {
 export const SETTINGS = {
   // Map look + framing (world / global)
   TILE_STYLE: "tileStyle",
+  TILE_DATA_BASE: "tileDataBase",
   INITIAL_CENTER: "initialCenter",
   INITIAL_ZOOM: "initialZoom",
   DEFAULT_PROJECTION: "defaultProjection",
@@ -52,6 +53,13 @@ export const SETTINGS = {
 export const STYLE_PRESETS = ["golarion", "earth"] as const;
 const DEFAULT_TILE_STYLE = "golarion";
 
+// Where the Golarion tile data (golarion.pmtiles + terrain/) is fetched from.
+// Default: the shared CDN bucket, so the map data "comes with the module" on any
+// server without copying the 305 MB file locally. Leave blank to fetch from the
+// Foundry server itself (Data/modules/globe-map/...). Switch to the pretty CDN
+// domain (https://foundry-modules.schmooky.dev/globe-map) once its DNS is live.
+const DEFAULT_TILE_DATA_BASE = "https://s3.twcstorage.ru/foundry-modules/globe-map";
+
 // River Kingdoms / Stolen Lands neighbourhood on the pf-wikis Golarion map.
 // These defaults drop a Kingmaker style hex crawl roughly over the region; the
 // GM nudges center/size from the module settings to line it up exactly.
@@ -78,6 +86,16 @@ export function registerSettings(): void {
     config: true,
     type: String,
     default: DEFAULT_TILE_STYLE,
+    onChange: () => reopenIfOpen(),
+  });
+
+  reg(SETTINGS.TILE_DATA_BASE, {
+    name: "GLOBEMAP.SettingTileDataBase",
+    hint: "GLOBEMAP.SettingTileDataBaseHint",
+    scope: "world",
+    config: true,
+    type: String,
+    default: DEFAULT_TILE_DATA_BASE,
     onChange: () => reopenIfOpen(),
   });
 
@@ -281,6 +299,12 @@ const get = (k: string) => game.settings.get(MODULE_ID, k);
 
 export function getTileStyle(): string {
   return get(SETTINGS.TILE_STYLE) || DEFAULT_TILE_STYLE;
+}
+
+/** Base URL for golarion.pmtiles + terrain tiles. Empty => Foundry-served. */
+export function getTileDataBase(): string {
+  const v = get(SETTINGS.TILE_DATA_BASE);
+  return typeof v === "string" ? v.trim().replace(/\/+$/, "") : DEFAULT_TILE_DATA_BASE;
 }
 
 export function getInitialCenter(): [number, number] {

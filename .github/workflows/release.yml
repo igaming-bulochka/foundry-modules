@@ -91,7 +91,7 @@ jobs:
         run: node tools/publish/package.mjs
         env:
           ONLY: ${{ github.event.inputs.only }}
-          CDN_BASE: ${{ vars.CDN_BASE || 'https://foundry-modules.schmooky.dev' }}
+          CDN_BASE: ${{ vars.CDN_BASE || 'https://s3.twcstorage.ru/foundry-modules' }}
           CDN_PATH_PREFIX: ${{ vars.CDN_PATH_PREFIX }}
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
 

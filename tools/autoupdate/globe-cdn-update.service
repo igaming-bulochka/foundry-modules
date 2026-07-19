@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 # Adjust env to match the host if it differs from the script defaults.
-Environment=CDN_BASE=https://foundry-modules.schmooky.dev
+Environment=CDN_BASE=https://s3.twcstorage.ru/foundry-modules
 Environment=MODULES_DIR=/var/foundrydata-staging/Data/modules
 Environment=FVTT_USER=fvtt
 Environment=FVTT_SERVICE=foundry-staging

@@ -14,7 +14,7 @@
 # Config via environment (all optional; defaults suit the staging host):
 set -euo pipefail
 
-CDN_BASE="${CDN_BASE:-https://foundry-modules.schmooky.dev}"
+CDN_BASE="${CDN_BASE:-https://s3.twcstorage.ru/foundry-modules}"
 PREFIX="${CDN_PATH_PREFIX:-}"
 MODULES_DIR="${MODULES_DIR:-/var/foundrydata-staging/Data/modules}"
 FVTT_USER="${FVTT_USER:-fvtt}"

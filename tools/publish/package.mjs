@@ -27,7 +27,9 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const PACKAGES = path.join(ROOT, "packages");
 const RELEASE = path.join(ROOT, "release");
 
-const CDN_BASE = (process.env.CDN_BASE || "https://foundry-modules.schmooky.dev").replace(/\/+$/, "");
+// Raw S3 bucket URL until DNS for foundry-modules.schmooky.dev is live; flip
+// this (and the module setting default) to the pretty domain once it CNAMEs.
+const CDN_BASE = (process.env.CDN_BASE || "https://s3.twcstorage.ru/foundry-modules").replace(/\/+$/, "");
 // Empty by default: the CDN host is already foundry-modules.*, so modules live
 // at the bucket root (…/globe-map/module.json). Set CDN_PATH_PREFIX to nest.
 const PREFIX = (process.env.CDN_PATH_PREFIX ?? "").replace(/^\/+|\/+$/g, "");

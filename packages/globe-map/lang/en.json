@@ -5,6 +5,8 @@
 
   "GLOBEMAP.SettingTileStyle": "Map Tile Style",
   "GLOBEMAP.SettingTileStyleHint": "Use preset name 'golarion' (bundled Golarion map, default) or 'earth' (MapLibre demo Earth tiles), or paste any MapLibre style.json URL to use a custom map.",
+  "GLOBEMAP.SettingTileDataBase": "Golarion Tile Data URL",
+  "GLOBEMAP.SettingTileDataBaseHint": "Base URL for the Golarion map data (golarion.pmtiles + terrain). Defaults to the shared CDN so the map works without hosting the 305MB file on this server. Leave blank to serve it from this Foundry server (Data/modules/globe-map). Switch to your CDN domain once its DNS is live.",
   "GLOBEMAP.SettingInitialCenter": "Initial Map Center",
   "GLOBEMAP.SettingInitialCenterHint": "Comma-separated longitude,latitude for the map's default center. Example: 0,20",
   "GLOBEMAP.SettingInitialZoom": "Initial Zoom",

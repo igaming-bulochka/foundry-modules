@@ -19,6 +19,7 @@ import {
 } from "./types";
 import {
   getTileStyle,
+  getTileDataBase,
   getInitialCenter,
   getInitialZoom,
   getDefaultProjection,
@@ -193,7 +194,7 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
 
     this.map = new maplibregl.Map({
       container,
-      style: resolveStyle(getTileStyle(), moduleBaseUrl()),
+      style: resolveStyle(getTileStyle(), getTileDataBase() || moduleBaseUrl()),
       center: getInitialCenter(),
       zoom: getInitialZoom(),
       attributionControl: { compact: true },

@@ -18,7 +18,9 @@ bun run build   # outputs dist/globe-map.{js,css}
 
 CI builds every package and publishes it to the Timeweb CDN on pushes to `main`
 (or manual dispatch). Foundry installs/updates each module from its CDN manifest
-URL, e.g. `https://foundry-modules.schmooky.dev/globe-map/module.json`.
+URL, e.g. `https://s3.twcstorage.ru/foundry-modules/globe-map/module.json` (the
+raw Timeweb S3 bucket; switch to `https://foundry-modules.schmooky.dev/...` once
+that domain's DNS points at the bucket).
 See [PIPELINE.md](PIPELINE.md) for the workflow, required secrets, Timeweb setup,
 and the staging autoupdate options.
 
