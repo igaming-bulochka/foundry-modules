@@ -1,0 +1,18 @@
+{
+  "name": "@schmooky/heightmap-gen",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "One-shot synthesizer that turns the pf-wikis Golarion pmtiles into Terrarium-encoded raster-dem PNG tiles for MapLibre setTerrain.",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "visualize": "node visualize.mjs"
+  },
+  "dependencies": {
+    "@mapbox/vector-tile": "^2.0.4",
+    "pbf": "^4.0.1",
+    "pmtiles": "^4.4.1",
+    "sharp": "^0.33.0",
+    "simplex-noise": "^4.0.0"
+  }
+}

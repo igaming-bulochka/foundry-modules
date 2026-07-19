@@ -1,0 +1,11 @@
+{
+  "name": "foundry-modules",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter '*' build"
+  }
+}

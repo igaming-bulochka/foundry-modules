@@ -1,0 +1,13 @@
+[Unit]
+Description=Periodic Foundry module autoupdate from the Timeweb CDN
+
+[Timer]
+# Check every 10 minutes (and shortly after boot). Manifests are served with
+# no-cache, so a check is cheap: one small JSON fetch unless something changed.
+OnBootSec=3min
+OnUnitActiveSec=10min
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

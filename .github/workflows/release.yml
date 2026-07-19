@@ -1,0 +1,142 @@
+name: Build & publish modules to Timeweb CDN
+
+# Builds every Foundry module in packages/*, rewrites each module.json to the
+# CDN, and uploads the release tree to a Timeweb S3-compatible bucket that is
+# fronted by the Timeweb CDN. Foundry then installs/updates each module from
+# its CDN manifest URL.
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   TIMEWEB_S3_ENDPOINT   e.g. https://s3.twcstorage.ru
+#   TIMEWEB_S3_BUCKET     the bucket name
+#   TIMEWEB_S3_ACCESS_KEY S3 access key (created for the bucket, NOT the API JWT)
+#   TIMEWEB_S3_SECRET_KEY S3 secret key
+# Optional:
+#   TIMEWEB_S3_REGION     defaults to ru-1
+#   Repository VARIABLES:
+#     CDN_BASE            e.g. https://cdn.golarion.schmooky.dev
+#     CDN_PATH_PREFIX     defaults to foundry-modules
+# Optional staging autoupdate (push-based):
+#   STAGING_HOST, STAGING_USER, STAGING_SSH_KEY
+# Optional CDN cache purge:
+#   TIMEWEB_TOKEN         Timeweb Cloud API JWT, TIMEWEB_CDN_ID  the CDN resource id
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - "tools/publish/**"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Comma-separated module ids to publish (blank = all)"
+        required: false
+        default: ""
+
+concurrency:
+  group: publish-cdn
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Optional secrets are surfaced as env here because the `secrets` context is
+    # not available in step-level `if:` conditions; `env` is.
+    env:
+      STAGING_HOST: ${{ secrets.STAGING_HOST }}
+      STAGING_USER: ${{ secrets.STAGING_USER }}
+      STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+      TIMEWEB_TOKEN: ${{ secrets.TIMEWEB_TOKEN }}
+      TIMEWEB_CDN_ID: ${{ secrets.TIMEWEB_CDN_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required secrets are present
+        run: |
+          missing=""
+          for s in TIMEWEB_S3_ENDPOINT TIMEWEB_S3_BUCKET TIMEWEB_S3_ACCESS_KEY TIMEWEB_S3_SECRET_KEY; do
+            if [ -z "${!s}" ]; then missing="$missing $s"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing required secrets:$missing"
+            echo "Add them under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+        env:
+          TIMEWEB_S3_ENDPOINT: ${{ secrets.TIMEWEB_S3_ENDPOINT }}
+          TIMEWEB_S3_BUCKET: ${{ secrets.TIMEWEB_S3_BUCKET }}
+          TIMEWEB_S3_ACCESS_KEY: ${{ secrets.TIMEWEB_S3_ACCESS_KEY }}
+          TIMEWEB_S3_SECRET_KEY: ${{ secrets.TIMEWEB_S3_SECRET_KEY }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build modules
+        run: |
+          if [ -n "${{ github.event.inputs.only }}" ]; then
+            for id in $(echo "${{ github.event.inputs.only }}" | tr ',' ' '); do
+              echo "Building $id"
+              (cd "packages/$id" && bun run build)
+            done
+          else
+            bun run build
+          fi
+
+      - name: Package release tree
+        run: node tools/publish/package.mjs
+        env:
+          ONLY: ${{ github.event.inputs.only }}
+          CDN_BASE: ${{ vars.CDN_BASE || 'https://foundry-modules.schmooky.dev' }}
+          CDN_PATH_PREFIX: ${{ vars.CDN_PATH_PREFIX }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+
+      - name: "Upload to Timeweb S3 (zips immutable, manifests no-cache)"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TIMEWEB_S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TIMEWEB_S3_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.TIMEWEB_S3_REGION || 'ru-1' }}
+          ENDPOINT: ${{ secrets.TIMEWEB_S3_ENDPOINT }}
+          BUCKET: ${{ secrets.TIMEWEB_S3_BUCKET }}
+        run: |
+          set -euo pipefail
+          # Versioned zips and static assets: cache hard.
+          aws s3 sync release/ "s3://$BUCKET/" \
+            --endpoint-url "$ENDPOINT" \
+            --exclude "*/module.json" --exclude "manifest-index.json" \
+            --cache-control "public,max-age=604800,immutable" \
+            --no-progress
+          # Manifests: never cache, so Foundry always sees the latest version.
+          aws s3 sync release/ "s3://$BUCKET/" \
+            --endpoint-url "$ENDPOINT" \
+            --exclude "*" --include "*/module.json" --include "manifest-index.json" \
+            --content-type "application/json" \
+            --cache-control "no-cache, max-age=0" \
+            --no-progress
+          echo "Published to $BUCKET via $ENDPOINT"
+
+      - name: Trigger staging Foundry autoupdate (optional)
+        if: ${{ env.STAGING_HOST != '' && env.STAGING_SSH_KEY != '' }}
+        run: |
+          set -euo pipefail
+          install -m 600 /dev/stdin key <<< "$STAGING_SSH_KEY"
+          ssh -i key -o StrictHostKeyChecking=accept-new "${STAGING_USER:-foundry}@$STAGING_HOST" \
+            'sudo /usr/local/bin/globe-cdn-update.sh' || echo "::warning::staging autoupdate failed"
+          rm -f key
+
+      - name: Purge CDN cache for manifests (optional)
+        if: ${{ env.TIMEWEB_TOKEN != '' && env.TIMEWEB_CDN_ID != '' }}
+        env:
+          PREFIX: ${{ vars.CDN_PATH_PREFIX }}
+        run: |
+          purge_path="/*/module.json"
+          if [ -n "$PREFIX" ]; then purge_path="/${PREFIX}/*/module.json"; fi
+          curl -sS -X DELETE \
+            "https://api.timeweb.cloud/api/v1/cdn/resources/${TIMEWEB_CDN_ID}/purge" \
+            -H "Authorization: Bearer ${TIMEWEB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"paths\": [\"${purge_path}\"]}" || echo "::warning::CDN purge failed (non-fatal)"

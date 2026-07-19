@@ -1,0 +1,38 @@
+{
+  "id": "globe-map",
+  "title": "Globe Map",
+  "description": "Interactive Golarion world map for Pathfinder 2e and Kingmaker. Globe or flat projection, a configurable Kingmaker hex overlay, party tracking, pins with icons, a journey timeline, pings, and 3D terrain. Realtime and multiplayer-safe via socketlib.",
+  "version": "0.3.0",
+  "authors": [
+    {
+      "name": "Schmooky"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "14",
+    "maximum": "14"
+  },
+  "esmodules": ["dist/globe-map.js"],
+  "styles": ["dist/globe-map.css"],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "requires": [
+      {
+        "id": "socketlib",
+        "type": "module",
+        "manifest": "https://github.com/manuelVo/foundryvtt-socketlib/releases/latest/download/module.json"
+      }
+    ]
+  },
+  "url": "https://github.com/igaming-bulochka/foundry-modules",
+  "manifest": "https://foundry-modules.schmooky.dev/globe-map/module.json",
+  "download": "https://foundry-modules.schmooky.dev/globe-map/globe-map-0.3.0.zip",
+  "socket": true
+}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Update Foundry modules from the Timeweb CDN
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Adjust env to match the host if it differs from the script defaults.
+Environment=CDN_BASE=https://foundry-modules.schmooky.dev
+Environment=MODULES_DIR=/var/foundrydata-staging/Data/modules
+Environment=FVTT_USER=fvtt
+Environment=FVTT_SERVICE=foundry-staging
+ExecStart=/usr/local/bin/globe-cdn-update.sh
