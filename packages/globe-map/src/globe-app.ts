@@ -68,8 +68,12 @@ const BUILT_IN_FEATURE_LAYERS = [
 
 const HEX_SOURCE = "gm-hex";
 const HEX_FILL = "gm-hex-fill";
+const HEX_CASING = "gm-hex-casing";
 const HEX_LINE = "gm-hex-line";
 const HEX_LABEL = "gm-hex-label";
+const HEX_LAYERS = [HEX_FILL, HEX_CASING, HEX_LINE];
+// Zoom-scaled line width so 12-mile hexes read at any zoom instead of vanishing.
+const HEX_WIDTH_EXPR = ["interpolate", ["linear"], ["zoom"], 3, 0.5, 6, 1.4, 9, 3, 12, 5] as any;
 
 function moduleBaseUrl(): string {
   return `${window.location.origin}/modules/${MODULE_ID}`;
@@ -208,6 +212,7 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
       this.ensureHexLayers();
       this.refreshHexSource();
       this.setHexVisible(this.hexOn);
+      if (this.hexOn) this.flyToHexGrid();
       this.redrawPins();
       this.redrawParty();
       this.attachFeatureInteractions();
@@ -282,21 +287,13 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
 
     const hex = btn("hex");
     if (hex) {
-      const available = this.projection === "flat";
-      hex.toggleAttribute("disabled", !available);
-      hex.classList.toggle("is-disabled", !available);
+      // Always clickable: enabling it switches to flat view automatically.
       hex.setAttribute("aria-pressed", this.hexOn ? "true" : "false");
-      hex.title = game.i18n.localize(
-        !available
-          ? "GLOBEMAP.Tool.HexFlatOnly"
-          : this.hexOn
-            ? "GLOBEMAP.Tool.HexHide"
-            : "GLOBEMAP.Tool.HexShow",
-      );
+      hex.title = game.i18n.localize(this.hexOn ? "GLOBEMAP.Tool.HexHide" : "GLOBEMAP.Tool.HexShow");
     }
 
     const hexcfg = btn("hexconfig");
-    if (hexcfg) hexcfg.style.display = this.projection === "flat" ? "" : "none";
+    if (hexcfg) hexcfg.style.display = "";
 
     const terrain = btn("terrain");
     if (terrain) {
@@ -372,13 +369,25 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
       layout: { visibility: "none" },
       paint: { "fill-color": cfg.color, "fill-opacity": cfg.fillOpacity },
     });
+    // Dark casing under the coloured line so the grid reads on land or water.
+    this.map.addLayer({
+      id: HEX_CASING,
+      type: "line",
+      source: HEX_SOURCE,
+      filter: ["==", ["geometry-type"], "Polygon"],
+      layout: { visibility: "none", "line-join": "round" },
+      paint: {
+        "line-color": "rgba(20, 14, 4, 0.55)",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 6, 2.8, 9, 5, 12, 7.5] as any,
+      },
+    });
     this.map.addLayer({
       id: HEX_LINE,
       type: "line",
       source: HEX_SOURCE,
       filter: ["==", ["geometry-type"], "Polygon"],
       layout: { visibility: "none", "line-join": "round" },
-      paint: { "line-color": cfg.color, "line-width": 1, "line-opacity": cfg.opacity },
+      paint: { "line-color": cfg.color, "line-width": HEX_WIDTH_EXPR, "line-opacity": cfg.opacity },
     });
     this.map.addLayer({
       id: HEX_LABEL,
@@ -413,6 +422,7 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
     if (this.map.getLayer(HEX_LINE)) {
       this.map.setPaintProperty(HEX_LINE, "line-color", cfg.color);
       this.map.setPaintProperty(HEX_LINE, "line-opacity", cfg.opacity);
+      this.map.setPaintProperty(HEX_LINE, "line-width", HEX_WIDTH_EXPR);
     }
     if (this.map.getLayer(HEX_LABEL)) {
       this.map.setPaintProperty(HEX_LABEL, "text-color", cfg.color);
@@ -427,7 +437,7 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
   private setHexVisible(on: boolean): void {
     if (!this.map) return;
     const vis = on ? "visible" : "none";
-    for (const id of [HEX_FILL, HEX_LINE]) {
+    for (const id of HEX_LAYERS) {
       if (this.map.getLayer(id)) this.map.setLayoutProperty(id, "visibility", vis);
     }
     if (this.map.getLayer(HEX_LABEL)) {
@@ -437,14 +447,37 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
   }
 
   private toggleHex(): void {
-    if (this.projection !== "flat") {
-      ui.notifications.info(game.i18n.localize("GLOBEMAP.Tool.HexFlatOnly"));
-      return;
-    }
-    this.hexOn = !this.hexOn;
+    const turningOn = !this.hexOn;
+    // The hex grid only exists in flat view; enabling it flips there for you.
+    if (turningOn && this.projection !== "flat") this.applyProjection("flat", true);
+    this.hexOn = turningOn;
     this.setHexVisible(this.hexOn);
     rememberHex(this.hexOn);
+    if (this.hexOn) this.flyToHexGrid();
     this.updateToolbarState();
+  }
+
+  /** Frame the current hex grid so the user actually sees it when enabled. */
+  private flyToHexGrid(): void {
+    if (!this.map) return;
+    const fc = buildHexGeoJSON(getHexConfig());
+    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+    for (const f of fc.features) {
+      if (f.geometry.type !== "Polygon") continue;
+      for (const ring of f.geometry.coordinates) {
+        for (const [lng, lat] of ring) {
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+        }
+      }
+    }
+    if (!Number.isFinite(minLng)) return;
+    this.map.fitBounds(
+      [[minLng, minLat], [maxLng, maxLat]],
+      { padding: 60, maxZoom: 9, duration: 800 },
+    );
   }
 
   private async openHexConfig(): Promise<void> {
@@ -454,6 +487,7 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
     await setHexConfig(patch);
     this.refreshHexSource();
     if (!this.hexOn) this.toggleHex();
+    else this.flyToHexGrid();
   }
 
   // ---- Journey panel & layers ----------------------------------------------

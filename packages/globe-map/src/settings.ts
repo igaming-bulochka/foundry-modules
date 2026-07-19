@@ -60,19 +60,22 @@ const DEFAULT_TILE_STYLE = "golarion";
 // domain (https://foundry-modules.schmooky.dev/globe-map) once its DNS is live.
 const DEFAULT_TILE_DATA_BASE = "https://s3.twcstorage.ru/foundry-modules/globe-map";
 
-// River Kingdoms / Stolen Lands neighbourhood on the pf-wikis Golarion map.
-// These defaults drop a Kingmaker style hex crawl roughly over the region; the
-// GM nudges center/size from the module settings to line it up exactly.
+// Stolen Lands on the pf-wikis Golarion map, measured from the tile data:
+// bounded by Pitax (lng ~3.9), Mivon (~6.0) and the Little Sellen (~8.45) east,
+// Brevoy/Rostland (lat ~48.6) north, and the Sellen River (~45.5) south. Center
+// ~(6.0, 47.1). 12 miles across is the canonical Kingmaker hex ("12 miles from
+// side to side"); at this map's Earth scale the grid spans ~214 mi (~35k sq mi),
+// matching the Stolen Lands. The GM nudges center/size to taste.
 export const DEFAULT_HEX_CONFIG: HexGridConfig = {
-  centerLng: 22.6,
-  centerLat: 40.2,
+  centerLng: 6.0,
+  centerLat: 47.1,
   hexMiles: 12,
-  cols: 22,
-  rows: 26,
+  cols: 20,
+  rows: 18,
   orientation: "flat",
-  color: "#c9a227",
-  opacity: 0.55,
-  fillOpacity: 0.04,
+  color: "#e0a92b",
+  opacity: 0.9,
+  fillOpacity: 0.05,
   showLabels: false,
 };
 
