@@ -146,29 +146,40 @@
 /* ============================================================================
    Markers
    ==========================================================================*/
+/* IMPORTANT: MapLibre writes an inline `transform` on the marker element every
+   frame while panning. Never put a `transition`/`animation` on `transform` on
+   these outer elements or the markers lag/slide behind the map. All hover and
+   drop animations live on `.globe-map-marker-inner` instead. */
 .globe-map-pin-marker {
   width: 30px;
   height: 30px;
   cursor: pointer;
+}
+.globe-map-pin-marker .globe-map-marker-inner {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  color: #d4534a;
+  color: inherit;
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.75));
-  transition: transform 0.14s ease, filter 0.14s ease;
   transform-origin: bottom center;
 }
-.globe-map-pin-marker:hover {
+.globe-map-pin-marker:hover .globe-map-marker-inner {
   transform: scale(1.22) translateY(-2px);
   filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.6));
 }
 
 .globe-map-wp-marker {
-  position: relative;
   width: 26px;
   height: 26px;
   cursor: pointer;
+}
+.globe-map-wp-marker .globe-map-marker-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -178,10 +189,14 @@
   border: 2px solid #2a1908;
   border-radius: 50%;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-  transition: transform 0.14s ease;
 }
-.globe-map-wp-marker:hover {
+.globe-map-wp-marker:hover .globe-map-marker-inner {
   transform: scale(1.18);
+}
+
+/* Shared inner wrapper: this is the only element that animates transform. */
+.globe-map-marker-inner {
+  transition: transform 0.14s ease, filter 0.14s ease;
 }
 .globe-map-wp-num {
   position: absolute;

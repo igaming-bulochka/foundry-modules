@@ -555,15 +555,21 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
   }
 
   private decorateWaypointEl(el: HTMLElement, w: Waypoint, idx: number): void {
-    el.innerHTML = `<span class="globe-map-wp-num">${idx + 1}</span><i class="${escapeHtml(TRAVEL_MODE_ICONS[w.travelMode] ?? "fa-solid fa-location-dot")}"></i>`;
+    // Content goes on the inner element; the outer is MapLibre's position layer
+    // (no transform transition, so markers do not lag/slide while panning).
+    const inner = el.querySelector<HTMLElement>(".globe-map-marker-inner");
+    if (inner) inner.innerHTML = `<span class="globe-map-wp-num">${idx + 1}</span><i class="${escapeHtml(TRAVEL_MODE_ICONS[w.travelMode] ?? "fa-solid fa-location-dot")}"></i>`;
     el.title = w.name;
   }
 
   private createWaypointMarker(w: Waypoint, idx: number): Marker {
     const el = document.createElement("div");
-    el.className = "globe-map-wp-marker globe-map-drop-in";
+    el.className = "globe-map-wp-marker";
+    const inner = document.createElement("div");
+    inner.className = "globe-map-marker-inner globe-map-drop-in";
+    el.appendChild(inner);
     this.decorateWaypointEl(el, w, idx);
-    setTimeout(() => el.classList.remove("globe-map-drop-in"), 500);
+    setTimeout(() => inner.classList.remove("globe-map-drop-in"), 500);
 
     const marker = new maplibregl.Marker({ element: el, anchor: "center", draggable: game.user.isGM })
       .setLngLat([w.lng, w.lat])
@@ -877,14 +883,18 @@ export class GlobeApp extends foundry.applications.api.ApplicationV2 {
 
   private decoratePinEl(el: HTMLElement, pin: Pin): void {
     el.style.color = pin.color || DEFAULT_PIN_COLOR;
-    el.innerHTML = `<i class="${escapeHtml(pin.icon || DEFAULT_PIN_ICON)}"></i>`;
+    const inner = el.querySelector<HTMLElement>(".globe-map-marker-inner");
+    if (inner) inner.innerHTML = `<i class="${escapeHtml(pin.icon || DEFAULT_PIN_ICON)}"></i>`;
   }
 
   private createPinMarker(pin: Pin): Marker {
     const el = document.createElement("div");
-    el.className = "globe-map-pin-marker globe-map-drop-in";
+    el.className = "globe-map-pin-marker";
+    const inner = document.createElement("div");
+    inner.className = "globe-map-marker-inner globe-map-drop-in";
+    el.appendChild(inner);
     this.decoratePinEl(el, pin);
-    setTimeout(() => el.classList.remove("globe-map-drop-in"), 500);
+    setTimeout(() => inner.classList.remove("globe-map-drop-in"), 500);
 
     const marker = new maplibregl.Marker({ element: el, anchor: "bottom", draggable: game.user.isGM })
       .setLngLat([pin.lng, pin.lat])
